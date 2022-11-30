@@ -1,0 +1,80 @@
+name: 'Release Version'
+on:
+  workflow_dispatch
+# on:
+#   workflow_dispatch:
+#   push:
+#     branches:
+#       - main
+#     paths-ignore:
+#       # This action updates these files, so ignore them to prevent an infinite loop
+#       - 'package.json'
+#       - 'CHANGELOG.md'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    # Set env var for use across steps
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+          token: ${{ secrets.GITHUB_TOKEN }}
+      # Cache yarn & node modules
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - uses: actions/cache@v2
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: |
+          yarn
+
+      # Bump version and push tag
+      # - name: Conventional Changelog Action
+      #   id: changelog
+      #   uses: TriPSs/conventional-changelog-action@f02cbf500be5df43bea8aba831e5b2907aef3366
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     # use eslint preset: https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-eslint
+      #     preset: 'eslint'
+      #     output-file: 'CHANGELOG.md'
+
+      # Bump version and push tag
+      - name: Conventional Changelog Action
+        id: changelog
+        run: yarn changelog && && git add CHANGELOG.md && git commit -m 'updated CHANGELOG.md' && git push origin --tags
+        # with:
+        #   github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Create a release
+      - name: Release
+        uses: elgohr/Github-Release-Action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          title: TODO
+
+      # Sync main to dev
+      - name: Merge Fast Forward to dev
+        uses: MaximeHeckel/github-action-merge-fast-forward@30b1ff690b27b5600ff4dc4e72385b46c8369f59
+        with:
+          # Branch to merge
+          branchtomerge: main
+          # Branch that will be updated
+          branch: dev

@@ -1,0 +1,25 @@
+name: '2) Promote and deploy DEV to UAT'
+on: workflow_dispatch
+
+jobs:
+  promote-to-uat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          # Admin token to push to protected branches
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Fetch the whole history to prevent unrelated history errors
+          fetch-depth: '0'
+          # The branch you want to checkout (usually equal to `branchtomerge`)
+          ref: 'dev'
+      - name: Merge Fast Forward
+        uses: MaximeHeckel/github-action-merge-fast-forward@30b1ff690b27b5600ff4dc4e72385b46c8369f59
+        with:
+          # Branch to merge
+          branchtomerge: dev
+          # Branch that will be updated
+          branch: uat
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
